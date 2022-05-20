@@ -1,0 +1,8 @@
+digraph {
+	Z -> X
+	U -> X
+	U -> Y
+	medicine -> survived
+	severeness -> survived
+	severeness -> medicine
+}

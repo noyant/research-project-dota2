@@ -1,0 +1,17 @@
+digraph {
+	"Selection of the Pudge hero"
+	"Game outcome"
+	"Opponent’s hero pick" -> "Selection of the Pudge hero"
+	"Opponent’s hero pick" -> "Game outcome"
+	"Opponent’s hero pick" -> "Team building"
+	"Team building" -> "Selection of the Pudge hero"
+	"Team building" -> "Game outcome"
+	Knowledge -> "Skill level"
+	"Skill level" -> MMR
+	MMR -> "Selection of the Pudge hero"
+	MMR -> "Game outcome"
+	"Strategy of the player" -> "Selection of the Pudge hero"
+	"Strategy of the player" -> "Game outcome"
+	"Past experience with the hero" -> "Selection of the Pudge hero"
+	"Past experience with the hero" -> "Game outcome"
+}
