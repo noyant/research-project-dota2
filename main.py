@@ -1,15 +1,17 @@
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 import random
+import pandas as pd
+import glob
+import os
 
 PATH = "/Users/noyantoksoy/Downloads/chromedriver"
 
 global driver
-driver = webdriver.Chrome(PATH)
+# driver = webdriver.Chrome(PATH)
 
 
 def fetch_games(day, month, year):
@@ -23,9 +25,8 @@ def fetch_games(day, month, year):
             EC.element_to_be_clickable((By.LINK_TEXT, "CSV"))
         )
         rows = driver.find_element(by=By.XPATH, value="/html/body/div/div/div[2]/div/div[4]/span[2]")
-        collected_games = int(rows.text.split(" ")[0])/10
-        print(collected_games)
-        setAttribute(csv_link, "download", f"data_300_{month}_{day}.csv")
+        collected_games = int(rows.text.split(" ")[0]) / 10
+        setAttribute(csv_link, "download", f"data_300_{month}_{day}_{year}.csv")
         csv_link.click()
         time.sleep(0.5)
         return collected_games
@@ -39,30 +40,46 @@ def setAttribute(element, att_name, att_value):
                           element, att_name, att_value)
 
 
+def merge_csv():
+    files = os.path.join("/Users/noyantoksoy/Downloads/final", "data*.csv")
+    files = glob.glob(files)
+    print(files)
+    df = pd.concat(map(pd.read_csv, files), ignore_index=True)
+    print(df.match_id.nunique())
+    df.drop_duplicates(subset=["match_id", "account_id", "start_time"],
+                       keep="first", inplace=True, ignore_index=True)
+    print(len(df.match_id.value_counts()[df.match_id.value_counts() < 10]))
+    for invalid in df.match_id.value_counts()[df.match_id.value_counts() < 10].index.values:
+        df = df[df.match_id != invalid]
+    print(df.match_id.nunique())
+    df.to_csv("/Users/noyantoksoy/Downloads/data_merged_final.csv")
+
+
 if __name__ == '__main__':
     games_to_collect = 25000
     games_collected = 0
-    day = 24
-    month = 3
-    year = 2022
-    while games_collected < games_to_collect:
-        text_month = ""
-        if month < 10:
-            text_month = "0" + str(month)
-        else:
-            text_month = "" + str(month)
-        collected = fetch_games(day, text_month, year)
-        games_collected += collected
-        new_day = day - random.randrange(start=1, stop=5)
-        if new_day > 0:
-            day = new_day
-        else:
-            day = 31
-            new_month = month - 1
-            if new_month > 0:
-                month = new_month
-            else:
-                month = 12
-                year = year - 1
-        time.sleep(2)
-    driver.quit()
+    day = 15
+    month = 8
+    year = 2021
+    merge_csv()
+    # while games_collected < games_to_collect:
+    #     text_month = ""
+    #     if month < 10:
+    #         text_month = "0" + str(month)
+    #     else:
+    #         text_month = "" + str(month)
+    #     collected = fetch_games(day, text_month, year)
+    #     games_collected += collected
+    #     new_day = day - random.randrange(start=1, stop=4)
+    #     if new_day > 0:
+    #         day = new_day
+    #     else:
+    #         day = 31
+    #         new_month = month - 1
+    #         if new_month > 0:
+    #             month = new_month
+    #         else:
+    #             month = 12
+    #             year = year - 1
+    #     time.sleep(2)
+    # driver.quit()
