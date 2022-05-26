@@ -9,7 +9,7 @@ if __name__ == '__main__':
     # merge_csv()
     base_path = "/Users/noyantoksoy/Downloads/gather_data_control_"
     games_collected = 0
-    goal = 5*6000000
+    goal = 5*60000000
     pudge_not_picked: list[dict] = []
     match_id = 6584503313
     while games_collected < goal:
@@ -20,11 +20,11 @@ if __name__ == '__main__':
             data = response_API.text
             parse_json = json.loads(data)
             pudge_not_picked += list(
-                filter(lambda x: (x["game_mode"] in [1, 2, 22]) and x["avg_mmr"] is not None and (
+                filter(lambda x: (x["game_mode"] in [1, 22]) and x["avg_mmr"] is not None and (
                         "14" not in x["dire_team"].split(",") and "14" not in x["radiant_team"].split(",")), parse_json))
             match_id = match_id - 1000 if len(pudge_not_picked) == 0 else pudge_not_picked[-1]["match_id"]
             games_collected += len(pudge_not_picked)
-            print(games_collected, "/", 5*6000000)
+            print(games_collected, "/", 5*60000000)
         except Exception as e:
             print(match_id)
             match_id = match_id - 1000
