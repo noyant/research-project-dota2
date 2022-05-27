@@ -45,10 +45,10 @@ def setAttribute(element, att_name, att_value):
 
 
 def merge_csv():
-    files = os.path.join("/Users/noyantoksoy/Downloads/gather_data_treatment_", "data*.csv")
+    files = os.path.join("/Users/noyantoksoy/Downloads/gather_data_new", "data*.csv")
     files = glob.glob(files)
     df = pd.concat(map(pd.read_csv, files), ignore_index=True)
-    pre_process_csv(df, "/Users/noyantoksoy/Downloads/data_merged_treatment_new.csv")
+    pre_process_csv(df, "/Users/noyantoksoy/Downloads/data_merged_new.csv")
 
 
 def pre_process_csv(df: pandas.DataFrame, file_path):
