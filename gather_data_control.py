@@ -1,6 +1,4 @@
 import json
-
-import pandas
 import requests
 from pprint import pprint
 import csv
@@ -37,34 +35,41 @@ def separate_data(file_path):
     print("Treatment: ", data_treatment.match_id.nunique())
 
 
+def gather_data(goal):
+    games_collected = 0
+    all_games: list[dict] = []
+    match_id = 6579918509
+    no_saved = 1
+    while games_collected < goal:
+        try:
+            URL = f"https://api.opendota.com/api/publicMatches?less_than_match_id={match_id}"
+            time.sleep(0.5)
+            response_API = requests.get(URL)
+            data = response_API.text
+            parse_json = json.loads(data)
+            all_games += list(
+                filter(lambda x: (x["game_mode"] in [1, 22]) and x["avg_mmr"] is not None, parse_json))
+            match_id = match_id - 1000 if len(all_games) == 0 else all_games[-1]["match_id"]
+            games_collected += len(all_games)
+            progress = (100 * games_collected) / goal
+            print("%.3f" % progress, "%")
+            if np.abs(progress - (no_saved * 10)) < 0.2:
+                save_data(all_games, match_id)
+                no_saved += 1
+        except Exception as e:
+            print(match_id)
+            match_id = match_id - 1000
+            continue
+
+    print(len(all_games))
+
+
 if __name__ == '__main__':
-    # merge_csv()
     base_path = "/Users/noyantoksoy/Downloads/gather_data_new"
-    separate_data("/Users/noyantoksoy/Downloads/data_merged_new.csv")
-    # games_collected = 0
-    # goal = 5 * 6000000
-    # pudge_not_picked: list[dict] = []
-    # match_id = 6579918509
-    # no_saved = 1
-    # while games_collected < goal:
-    #     try:
-    #         URL = f"https://api.opendota.com/api/publicMatches?less_than_match_id={match_id}"
-    #         time.sleep(0.5)
-    #         response_API = requests.get(URL)
-    #         data = response_API.text
-    #         parse_json = json.loads(data)
-    #         pudge_not_picked += list(
-    #             filter(lambda x: (x["game_mode"] in [1, 22]) and x["avg_mmr"] is not None, parse_json))
-    #         match_id = match_id - 1000 if len(pudge_not_picked) == 0 else pudge_not_picked[-1]["match_id"]
-    #         games_collected += len(pudge_not_picked)
-    #         progress = (100 * games_collected) / goal
-    #         print("%.3f" % progress, "%")
-    #         if np.abs(progress - (no_saved * 10)) < 0.2:
-    #             save_data(pudge_not_picked, match_id)
-    #             no_saved += 1
-    #     except Exception as e:
-    #         print(match_id)
-    #         match_id = match_id - 1000
-    #         continue
-    #
-    # print(len(pudge_not_picked))
+    process = 0
+    if process == 0:
+        gather_data(goal=5 * 6000000)
+    elif process == 1:
+        separate_data("/Users/noyantoksoy/Downloads/data_merged_new.csv")
+    elif process == 2:
+        merge_csv()
