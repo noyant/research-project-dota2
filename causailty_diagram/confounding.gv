@@ -1,0 +1,8 @@
+digraph confounding {
+	T
+	Y
+	L
+	T -> Y
+	L -> T
+	L -> Y
+}
