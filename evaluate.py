@@ -3,30 +3,44 @@ import pandas as pd
 import zepid
 
 
+def helper_game_outcome(team, radiant_win):
+    # False -> Radiant, True -> Dire
+
+    # False False -> 0
+    # False True -> 1
+    # True False -> 1
+    # True True -> 0
+    return int((bool(team) ^ radiant_win))
+
+
 def format_data(df):
-    df["T"] = 0
-    df["Y"] = 0
-    df["team"] = 0  # 0 -> radiant, 1-> dire
-    df_radiant = df.copy()
-    df_dire = df.copy()
+    df = df.assign(
+        team=lambda x: list(
+            map(lambda y: 0 if str(y) in ["0", "1", "2", "3", "4"] else 1, list(x["player_slot"].values))))
 
-    df_radiant.loc[df_radiant[df_radiant["radiant_win"] == True].index, "Y"] = 1
-    df_radiant.rename(columns={"radiant_team": "heroes"}, inplace=True)
-    radiant_mask = df_radiant.heroes.apply(lambda x: "14" in x.split(","))
-    df_radiant.loc[df_radiant[radiant_mask].index, "T"] = 1
+    df = df.assign(
+        Y=lambda x: list(
+            map(lambda team, radiant_win: helper_game_outcome(team, radiant_win),
+                list(x["team"].values), list(x["radiant_win"].values))))
 
-    df_dire.loc[df_dire[df_dire["radiant_win"] == False].index, "Y"] = 1
-    df_dire.rename(columns={"dire_team": "heroes"}, inplace=True)
-    dire_mask = df_dire.heroes.apply(lambda x: "14" in x.split(","))
-    df_dire.loc[df_dire[dire_mask].index, "T"] = 1
-    df_dire["team"] = 1
+    df_treatment = df[df.hero_id.apply(lambda x: 14 == x)]
+    match_ids = list(df_treatment["match_id"].values)
+    teams = list(df_treatment["team"].values)
+    df = df.assign(
+        T=lambda x: list(
+            map(lambda match_id, team: 1 if match_id in match_ids and teams[match_ids.index(match_id)] == team else 0,
+                list(x["match_id"].values), list(x["team"].values))))
 
-    df = pd.concat([df_radiant, df_dire], ignore_index=True)
-    df.rename(columns={"avg_mmr": "L"}, inplace=True)
+    df.rename(columns={"pudge_win_rate": "L1"}, inplace=True)
+    df.rename(columns={"pudge_kda": "L2"}, inplace=True)
+    df.rename(columns={"mmr_estimate": "L3"}, inplace=True)
+    df.rename(columns={"counter_performance": "L4"}, inplace=True)
+    df.rename(columns={"team_balance": "L5"}, inplace=True)
     df.reset_index()
-    df.drop("Unnamed: 0", inplace=True, axis=1)
-    df.drop("dire_team", inplace=True, axis=1)
-    df.drop("radiant_team", inplace=True, axis=1)
+    df.drop(df.filter(regex='Unnamed').columns, inplace=True, axis=1)
+    df.drop("radiant_win", inplace=True, axis=1)
+    df.drop("player_slot", inplace=True, axis=1)
+    df.drop("picks_bans", inplace=True, axis=1)
     return df
 
 
@@ -45,14 +59,14 @@ def apply_g_formula(data_, regression_formula):
 
 
 if __name__ == '__main__':
-    data = pd.read_csv("/Users/noyantoksoy/Downloads/data_merged_new.csv")
+    data = pd.read_csv("/Users/noyantoksoy/Downloads/data_300_with_extra_info_fixed.csv")
     data = format_data(data)
 
-    without_confounder = apply_g_formula(data, "T")
-    with_confounder = apply_g_formula(data, "T + L + T:L")
-    print("ATE without the confounder:", without_confounder)
-    print("ATE with the confounder:", with_confounder)
-    print("Effect of the confounder:", without_confounder - with_confounder)
+    without_confounders = apply_g_formula(data, "T")
+    with_confounders = apply_g_formula(data, "T + L1 + L2 + L3 + L4 + L5 + T:L1 + T:L2 + T:L3 + T:L4 + T:L5")
+    print("ATE without the confounder:", without_confounders)
+    print("ATE with the confounders:", with_confounders)
+    print("Effect of the confounders:", without_confounders - with_confounders)
 
     # ate_list = []
     # for i in range(1000):

@@ -76,13 +76,12 @@ def fetch_games_api(day_, month_, year_, URL_, all_games_, collection_error_):
         time.sleep(0.5)
         response_API = requests.get(URL_)
         data = response_API.text
-        print(data)
         parse_json = json.loads(data)
         all_games_ += list(parse_json["rows"])
         return int(len(all_games_) / 10)
     except Exception as e:
         collection_error_.append([day_, month_, year_])
-        traceback.print_exc()
+        # traceback.print_exc()
         return 0
 
 
@@ -93,12 +92,13 @@ def get_pudge_win_rate(account_id, collection_error_extra_info):
         data = response_API.text
         parse_json = json.loads(data)
         hero_stats = list(filter(lambda hero: hero["hero_id"] == "14", parse_json))[0]
-        return np.round(hero_stats["win"] / hero_stats["games"], 4) if hero_stats["games"] > 20 else 0
+        return np.round(hero_stats["win"] / hero_stats["games"], 4) if hero_stats["games"] > 15 else 0.4787 - (
+                hero_stats["games"] - hero_stats["win"]) / 100
     except Exception as e:
         # traceback.print_exc()
         print("Win_rate ", e)
         collection_error_extra_info.append(account_id)
-        time.sleep(0.5)
+        time.sleep(5)
         return -1
 
 
@@ -109,12 +109,13 @@ def get_pudge_kda(account_id, collection_error_extra_info):
         data = response_API.text
         parse_json = json.loads(data)
         kda_stat = list(filter(lambda stat: stat["field"] == "kda", parse_json))[0]
-        return np.round(kda_stat["sum"] / kda_stat["n"], 4) if kda_stat["n"] > 20 else 0
+        return np.round(kda_stat["sum"] / kda_stat["n"], 4) if kda_stat["n"] > 15 else np.min(2.2775, np.round(
+            kda_stat["sum"] / kda_stat["n"], 4))
     except Exception as e:
         # traceback.print_exc()
         print("KDA ", e)
         collection_error_extra_info.append(account_id)
-        time.sleep(0.5)
+        time.sleep(5)
         return -1
 
 
@@ -129,7 +130,7 @@ def get_mmr(account_id, collection_error_extra_info):
         # traceback.print_exc()
         print("MMR ", e)
         collection_error_extra_info.append(account_id)
-        time.sleep(0.5)
+        time.sleep(5)
         return -1
 
 
@@ -326,17 +327,17 @@ def form_carry_support_measure():
 
 
 def extra_information_helper(df_all_games, collection_error_win_rate_, collection_error_kda_, collection_error_mmr_):
-    # df_all_games = df_all_games.assign(
-    #     pudge_win_rate=lambda x: list(
-    #         map(lambda y: get_pudge_win_rate(y, collection_error_win_rate_), list(x["account_id"].values))))
-    #
-    # df_all_games = df_all_games.assign(
-    #     pudge_kda=lambda x: list(
-    #         map(lambda y: get_pudge_kda(y, collection_error_kda_), list(x["account_id"].values))))
-    #
-    # df_all_games = df_all_games.assign(
-    #     mmr_estimate=lambda x: list(
-    #         map(lambda y: get_mmr(y, collection_error_mmr_), list(x["account_id"].values))))
+    df_all_games = df_all_games.assign(
+        pudge_win_rate=lambda x: list(
+            map(lambda y: get_pudge_win_rate(y, collection_error_win_rate_), list(x["account_id"].values))))
+
+    df_all_games = df_all_games.assign(
+        pudge_kda=lambda x: list(
+            map(lambda y: get_pudge_kda(y, collection_error_kda_), list(x["account_id"].values))))
+
+    df_all_games = df_all_games.assign(
+        mmr_estimate=lambda x: list(
+            map(lambda y: get_mmr(y, collection_error_mmr_), list(x["account_id"].values))))
 
     prev_draft = [0.0, 0]
     df_all_games = df_all_games.assign(
@@ -351,38 +352,18 @@ def extra_information_helper(df_all_games, collection_error_win_rate_, collectio
     return df_all_games
 
 
-def get_extra_information():
-    df_all = pd.read_csv("/Users/noyantoksoy/Downloads/data_test_captains_mode_27_5_2022.csv")
+def get_extra_information(df_partial):
     collection_error_win_rate = []
     collection_error_kda = []
     collection_error_mmr = []
-    df = extra_information_helper(df_all.head(10), collection_error_win_rate, collection_error_kda,
+    df = extra_information_helper(df_partial, collection_error_win_rate, collection_error_kda,
                                   collection_error_mmr)
-    new_collection_error_win_rate = []
-    new_collection_error_kda = []
-    new_collection_error_mmr = []
 
-    # df_error_win_rate = df[df.account_id.apply(lambda x: x in collection_error_win_rate)]
-    # df_error_kda = df[df.account_id.apply(lambda x: x in collection_error_kda)]
-    # df_error_mmr = df[df.account_id.apply(lambda x: x in collection_error_mmr)]
-    #
-    # df_error_win_rate.to_csv("/Users/noyantoksoy/Downloads/data_error_win_rate.csv")
-    # df_error_kda.to_csv("/Users/noyantoksoy/Downloads/data_error_kda.csv")
-    # df_error_mmr.to_csv("/Users/noyantoksoy/Downloads/data_error_mmr.csv")
-    #
-    # # df.loc[].index, "pudge_win_rate"] = list(
-    # #     map(lambda account: get_pudge_win_rate(account, new_collection_error_win_rate), collection_error_win_rate))
     # print("Errors in win-rate: ", len(collection_error_win_rate))
-    # #
-    # # df.loc[df[df.account_id.apply(lambda x: x in collection_error_kda)].index, "pudge_kda"] = list(
-    # #     map(lambda account: get_pudge_kda(account, new_collection_error_kda), collection_error_kda))
     # print("Errors in kda: ", len(collection_error_kda))
-    # #
-    # # df.loc[df[df.account_id.apply(lambda x: x in collection_error_mmr)].index, "mmr_estimate"] = list(
-    # #     map(lambda account: get_mmr(account, new_collection_error_mmr), collection_error_mmr))
     # print("Errors in mmr: ", len(collection_error_mmr))
 
-    df.to_csv("/Users/noyantoksoy/Downloads/data_10_with_counter_info.csv")
+    return df
 
 
 def helper_update_counters(list_counters):
@@ -392,60 +373,103 @@ def helper_update_counters(list_counters):
     return counter_dict
 
 
+def fix_missing_values(df):
+    missing_win_rate_mask = df.pudge_win_rate.apply(lambda x: -1.0 == x)
+    missing_kda_mask = df.pudge_kda.apply(lambda x: -1.0 == x)
+    missing_mmr_mask = df.mmr_estimate.apply(lambda x: -1.0 == x)
+
+    df_missing_win_rate = df[missing_win_rate_mask]
+    df_missing_kda = df[missing_kda_mask]
+    df_missing_mmr = df[missing_mmr_mask]
+
+    collection_error_win_rate = []
+    collection_error_kda = []
+    collection_error_mmr = []
+
+    df.loc[df_missing_win_rate.index, "pudge_win_rate"] = list(
+        map(lambda account: get_pudge_win_rate(account, collection_error_win_rate),
+            df_missing_win_rate["account_id"].values))
+
+    df.loc[df_missing_kda.index, "pudge_kda"] = list(
+        map(lambda account: get_pudge_kda(account, collection_error_kda),
+            df_missing_kda["account_id"].values))
+
+    df.loc[df_missing_mmr.index, "mmr_estimate"] = list(
+        map(lambda account: get_mmr(account, collection_error_mmr),
+            df_missing_mmr["account_id"].values))
+
+    while len(collection_error_win_rate) + len(collection_error_kda) + len(collection_error_mmr) > 0:
+        print("Errors in win-rate: ", len(collection_error_win_rate))
+        print("Errors in kda: ", len(collection_error_kda))
+        print("Errors in mmr: ", len(collection_error_mmr))
+        time.sleep(5)
+        fix_missing_values(df)
+
+    return df
+
+
 if __name__ == '__main__':
     # form_counter_pick_list()
-
-    # with open('/Users/noyantoksoy/Documents/research-project-dota2/data/counter_picks_updated.json', 'rb') as fp:
-    #     data_counters: list[dict] = json.load(fp)
-    #
-    # with open('/Users/noyantoksoy/Documents/research-project-dota2/data/heroes.json', 'rb') as fp:
-    #     heroes = json.load(fp)
-    #
-    # with open('/Users/noyantoksoy/Documents/research-project-dota2/data/carry_support.json', 'rb') as fp:
-    #     carry_support_measures = json.load(fp)
-
     # form_carry_support_measure()
 
-    # get_extra_information()
+    with open('/Users/noyantoksoy/Documents/research-project-dota2/data/counter_picks_updated.json', 'rb') as fp:
+        data_counters: list[dict] = json.load(fp)
+
+    with open('/Users/noyantoksoy/Documents/research-project-dota2/data/heroes.json', 'rb') as fp:
+        heroes = json.load(fp)
+
+    with open('/Users/noyantoksoy/Documents/research-project-dota2/data/carry_support.json', 'rb') as fp:
+        carry_support_measures = json.load(fp)
+
+    df_all = pd.read_csv("/Users/noyantoksoy/Downloads/data_new_captains_mode_1_11_2021.csv")
+    df_iter = None
+    interval = 500
+    for i in range(len(df_all)):
+        df_iter = df_all[i:i + interval]
+        df_extra_info = fix_missing_values(get_extra_information(df_iter))
+        df_extra_info.drop("picks_bans", inplace=True, axis=1)
+        df_extra_info.to_csv(
+            f"/Users/noyantoksoy/Downloads/intermediate_saves/data_{len(df_iter)}_with_extra_info_{i}.csv")
+        i += interval
+        time.sleep(5)
 
     # merge_csv()
 
-    games_to_collect = 800000
-    games_collected = 0
-    day = 5
-    month = 6
-    year = 2022
-    all_games = []
-    collection_error = []
-    while games_collected < games_to_collect:
-        text_month = ""
-        if month < 10:
-            text_month = "0" + str(month)
-        else:
-            text_month = "" + str(month)
-        URL_query = f"https://api.opendota.com/api/explorer?sql=SELECT%0Amatches.match_id%2C%0Amatches.start_time%2C%0Amatches.game_mode%2C%0Amatches.radiant_win%2C%0Aplayer_matches.account_id%2C%0Aplayer_matches.player_slot%2C%0Aplayer_matches.hero_id%2C%0Amatches.picks_bans%0AFROM%20matches%0AJOIN%20match_patch%20using(match_id)%0ARIGHT%20JOIN%20player_matches%20using(match_id)%0AWHERE%20TRUE%0AAND%20matches.start_time%20%3E%3D%20extract(epoch%20from%20timestamp%20%27{year}-{text_month}-{day}T18%3A26%3A47.482Z%27)%0AAND%20matches.game_mode%20IN%20(2%2C%2022)%0AORDER%20BY%20matches.match_id%20NULLS%20LAST%0ALIMIT%2012000"
-        collected = fetch_games_api(day, text_month, year, URL_query, all_games, collection_error)
-        print(collected)
-        games_collected += collected
-        new_day = day - random.randrange(start=1, stop=2)
-        if new_day > 0:
-            day = new_day
-        else:
-            day = 31
-            new_month = month - 1
-            if new_month > 0:
-                if new_month == 2:
-                    day = 28
-                month = new_month
-            else:
-                month = 12
-                year = year - 1
-        time.sleep(1)
-    new_collection_error = []
-    fixed_collection_errors = map(lambda date: fetch_games_api(date[0], date[1], date[2], f"https://api.opendota.com/api/explorer?sql=SELECT%0Amatches.match_id%2C%0Amatches.start_time%2C%0Amatches.game_mode%2C%0Amatches.radiant_win%2C%0Aplayer_matches.account_id%2C%0Aplayer_matches.player_slot%2C%0Aplayer_matches.hero_id%2C%0Amatches.picks_bans%0AFROM%20matches%0AJOIN%20match_patch%20using(match_id)%0ARIGHT%20JOIN%20player_matches%20using(match_id)%0AWHERE%20TRUE%0AAND%20matches.start_time%20%3E%3D%20extract(epoch%20from%20timestamp%20%27{date[2]}-{date[1]}-{date[0]}T18%3A26%3A47.482Z%27)%0AAND%20matches.game_mode%20IN%20(2%2C%2022)%0AORDER%20BY%20matches.match_id%20NULLS%20LAST%0ALIMIT%2012000", all_games, new_collection_error), collection_error)
-    print(len(new_collection_error), new_collection_error)
-    df = pd.DataFrame(all_games)
-    df.drop_duplicates(subset=["match_id", "start_time", "account_id"], keep="first", inplace=True, ignore_index=True)
-    print(df.match_id.nunique())
-    df.to_csv(f"/Users/noyantoksoy/Downloads/data_new_captains_mode_{day}_{month}_{year}.csv")
+    # games_to_collect = 2 * 8000000
+    # games_collected = 0
+    # day = 13
+    # month = 4
+    # year = 2022
+    # all_games = []
+    # collection_error = []
+    # while games_collected < games_to_collect:
+    #     text_month = ""
+    #     if month < 10:
+    #         text_month = "0" + str(month)
+    #     else:
+    #         text_month = "" + str(month)
+    #     URL_query = f"https://api.opendota.com/api/explorer?sql=SELECT%0Amatches.match_id%2C%0Amatches.start_time%2C%0Amatches.game_mode%2C%0Amatches.radiant_win%2C%0Aplayer_matches.account_id%2C%0Aplayer_matches.player_slot%2C%0Aplayer_matches.hero_id%2C%0Amatches.picks_bans%0AFROM%20matches%0AJOIN%20match_patch%20using(match_id)%0ARIGHT%20JOIN%20player_matches%20using(match_id)%0AWHERE%20TRUE%0AAND%20matches.start_time%20%3E%3D%20extract(epoch%20from%20timestamp%20%27{year}-{text_month}-{day}T18%3A26%3A47.482Z%27)%0AAND%20matches.game_mode%20IN%20(2%2C%2022)%0AORDER%20BY%20matches.match_id%20NULLS%20LAST%0ALIMIT%2012000"
+    #     collected = fetch_games_api(day, text_month, year, URL_query, all_games, collection_error)
+    #     games_collected += collected
+    #     new_day = day - random.randrange(start=1, stop=2)
+    #     if new_day > 0:
+    #         day = new_day
+    #     else:
+    #         day = 31
+    #         new_month = month - 1
+    #         if new_month > 0:
+    #             if new_month == 2:
+    #                 day = 28
+    #             month = new_month
+    #         else:
+    #             month = 12
+    #             year = year - 1
+    #     time.sleep(1)
+    # new_collection_error = []
+    # fixed_collection_errors = map(lambda date: fetch_games_api(date[0], date[1], date[2], f"https://api.opendota.com/api/explorer?sql=SELECT%0Amatches.match_id%2C%0Amatches.start_time%2C%0Amatches.game_mode%2C%0Amatches.radiant_win%2C%0Aplayer_matches.account_id%2C%0Aplayer_matches.player_slot%2C%0Aplayer_matches.hero_id%2C%0Amatches.picks_bans%0AFROM%20matches%0AJOIN%20match_patch%20using(match_id)%0ARIGHT%20JOIN%20player_matches%20using(match_id)%0AWHERE%20TRUE%0AAND%20matches.start_time%20%3E%3D%20extract(epoch%20from%20timestamp%20%27{date[2]}-{date[1]}-{date[0]}T18%3A26%3A47.482Z%27)%0AAND%20matches.game_mode%20IN%20(2%2C%2022)%0AORDER%20BY%20matches.match_id%20NULLS%20LAST%0ALIMIT%2012000", all_games, new_collection_error), collection_error)
+    # print(len(new_collection_error), new_collection_error)
+    # df = pd.DataFrame(all_games)
+    # df.drop_duplicates(subset=["match_id", "start_time", "account_id"], keep="first", inplace=True, ignore_index=True)
+    # print(df.match_id.nunique())
+    # df.to_csv(f"/Users/noyantoksoy/Downloads/data_new_captains_mode_{day}_{month}_{year}.csv")
     # driver.quit()
