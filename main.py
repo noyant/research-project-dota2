@@ -87,7 +87,7 @@ def fetch_games_api(day_, month_, year_, URL_, all_games_, collection_error_):
 
 def get_pudge_win_rate(account_id, collection_error_extra_info):
     try:
-        time.sleep(0.2)
+        time.sleep(0.1)
         response_API = requests.get(f"https://api.opendota.com/api/players/{account_id}/heroes")
         data = response_API.text
         parse_json = json.loads(data)
@@ -98,13 +98,13 @@ def get_pudge_win_rate(account_id, collection_error_extra_info):
         # traceback.print_exc()
         print("Win_rate ", e)
         collection_error_extra_info.append(account_id)
-        time.sleep(5)
+        time.sleep(0.2)
         return -1
 
 
 def get_pudge_kda(account_id, collection_error_extra_info):
     try:
-        time.sleep(0.2)
+        time.sleep(0.1)
         response_API = requests.get(f"https://api.opendota.com/api/players/{account_id}/totals?hero_id=14")
         data = response_API.text
         parse_json = json.loads(data)
@@ -115,13 +115,13 @@ def get_pudge_kda(account_id, collection_error_extra_info):
         # traceback.print_exc()
         print("KDA ", e)
         collection_error_extra_info.append(account_id)
-        time.sleep(5)
+        time.sleep(0.2)
         return -1
 
 
 def get_mmr(account_id, collection_error_extra_info):
     try:
-        time.sleep(0.2)
+        time.sleep(0.1)
         response_API = requests.get(f"https://api.opendota.com/api/players/{account_id}")
         data = response_API.text
         parse_json = json.loads(data)
@@ -130,7 +130,7 @@ def get_mmr(account_id, collection_error_extra_info):
         # traceback.print_exc()
         print("MMR ", e)
         collection_error_extra_info.append(account_id)
-        time.sleep(5)
+        time.sleep(0.2)
         return -1
 
 
@@ -373,7 +373,7 @@ def helper_update_counters(list_counters):
     return counter_dict
 
 
-def fix_missing_values(df):
+def fix_missing_values(df, retries):
     missing_win_rate_mask = df.pudge_win_rate.apply(lambda x: -1.0 == x)
     missing_kda_mask = df.pudge_kda.apply(lambda x: -1.0 == x)
     missing_mmr_mask = df.mmr_estimate.apply(lambda x: -1.0 == x)
@@ -382,30 +382,40 @@ def fix_missing_values(df):
     df_missing_kda = df[missing_kda_mask]
     df_missing_mmr = df[missing_mmr_mask]
 
-    collection_error_win_rate = []
-    collection_error_kda = []
-    collection_error_mmr = []
+    if len(df_missing_win_rate) + len(df_missing_kda) + len(df_missing_mmr) == 0:
+        return df
+    elif retries > 8:
+        print("Can't fix certain errors")
+        print("Errors in win-rate: ", len(df_missing_win_rate))
+        print("Errors in kda: ", len(df_missing_kda))
+        print("Errors in mmr: ", len(df_missing_mmr))
+        df.drop("picks_bans", inplace=True, axis=1)
+        df.to_csv(
+            f"/Users/noyantoksoy/Downloads/intermediate_saves/data_error_{len(df)}_with_extra_info_{i}.csv")
+        return None
+    else:
+        collection_error_win_rate = []
+        collection_error_kda = []
+        collection_error_mmr = []
 
-    df.loc[df_missing_win_rate.index, "pudge_win_rate"] = list(
-        map(lambda account: get_pudge_win_rate(account, collection_error_win_rate),
-            df_missing_win_rate["account_id"].values))
+        df.loc[df_missing_win_rate.index, "pudge_win_rate"] = list(
+            map(lambda account: get_pudge_win_rate(account, collection_error_win_rate),
+                df_missing_win_rate["account_id"].values))
 
-    df.loc[df_missing_kda.index, "pudge_kda"] = list(
-        map(lambda account: get_pudge_kda(account, collection_error_kda),
-            df_missing_kda["account_id"].values))
+        df.loc[df_missing_kda.index, "pudge_kda"] = list(
+            map(lambda account: get_pudge_kda(account, collection_error_kda),
+                df_missing_kda["account_id"].values))
 
-    df.loc[df_missing_mmr.index, "mmr_estimate"] = list(
-        map(lambda account: get_mmr(account, collection_error_mmr),
-            df_missing_mmr["account_id"].values))
+        df.loc[df_missing_mmr.index, "mmr_estimate"] = list(
+            map(lambda account: get_mmr(account, collection_error_mmr),
+                df_missing_mmr["account_id"].values))
 
-    while len(collection_error_win_rate) + len(collection_error_kda) + len(collection_error_mmr) > 0:
-        print("Errors in win-rate: ", len(collection_error_win_rate))
-        print("Errors in kda: ", len(collection_error_kda))
-        print("Errors in mmr: ", len(collection_error_mmr))
-        time.sleep(5)
-        fix_missing_values(df)
-
-    return df
+        print("Errors in win-rate: ", len(df_missing_win_rate))
+        print("Errors in kda: ", len(df_missing_kda))
+        print("Errors in mmr: ", len(df_missing_mmr))
+        time.sleep(1)
+        retries += 1
+        return fix_missing_values(df, retries)
 
 
 if __name__ == '__main__':
@@ -424,14 +434,14 @@ if __name__ == '__main__':
     df_all = pd.read_csv("/Users/noyantoksoy/Downloads/data_new_captains_mode_1_11_2021.csv")
     df_iter = None
     interval = 500
-    for i in range(len(df_all)):
+    for i in range(56 * interval, len(df_all), interval):
         df_iter = df_all[i:i + interval]
-        df_extra_info = fix_missing_values(get_extra_information(df_iter))
+        df_extra_info = fix_missing_values(get_extra_information(df_iter), 0)
         df_extra_info.drop("picks_bans", inplace=True, axis=1)
         df_extra_info.to_csv(
             f"/Users/noyantoksoy/Downloads/intermediate_saves/data_{len(df_iter)}_with_extra_info_{i}.csv")
         i += interval
-        time.sleep(5)
+        time.sleep(2)
 
     # merge_csv()
 
