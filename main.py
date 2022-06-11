@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from functools import reduce
 import time
 import random
+from multiprocessing import Pool, cpu_count
 import ast
 import pandas as pd
 import numpy as np
@@ -22,9 +23,19 @@ chromeOptions.add_experimental_option("prefs", prefs)
 PATH = "/Users/noyantoksoy/Downloads/chromedriver"
 
 global driver
-
-
 # driver = webdriver.Chrome(executable_path=PATH, options=chromeOptions)
+
+with open('/Users/noyantoksoy/Documents/research-project-dota2/data/counter_picks_updated.json', 'rb') as fp:
+    data_counters: list[dict] = json.load(fp)
+    fp.close()
+
+with open('/Users/noyantoksoy/Documents/research-project-dota2/data/heroes.json', 'rb') as fp:
+    heroes = json.load(fp)
+    fp.close()
+
+with open('/Users/noyantoksoy/Documents/research-project-dota2/data/carry_support.json', 'rb') as fp:
+    carry_support_measures = json.load(fp)
+    fp.close()
 
 
 def fetch_games(day, month, year, URL, collection_error):
@@ -371,7 +382,6 @@ def helper_update_counters(list_counters):
 
 
 def fix_missing_values(df, retries):
-
     missing_win_rate_mask = df.pudge_win_rate.apply(lambda x: -1.0 == x)
     missing_kda_mask = df.pudge_kda.apply(lambda x: -1.0 == x)
     missing_mmr_mask = df.mmr_estimate.apply(lambda x: -1.0 == x)
@@ -422,26 +432,22 @@ if __name__ == '__main__':
     # package_dir = os.path.dirname(os.path.abspath(__file__))
     # print(package_dir)
 
-    with open('/Users/noyantoksoy/Documents/research-project-dota2/data/counter_picks_updated.json', 'rb') as fp:
-        data_counters: list[dict] = json.load(fp)
-
-    with open('/Users/noyantoksoy/Documents/research-project-dota2/data/heroes.json', 'rb') as fp:
-        heroes = json.load(fp)
-
-    with open('/Users/noyantoksoy/Documents/research-project-dota2/data/carry_support.json', 'rb') as fp:
-        carry_support_measures = json.load(fp)
-
     df_all = pd.read_csv("/Users/noyantoksoy/Downloads/data_new_captains_mode_1_11_2021.csv")
-    df_iter = None
-    interval = 500
-    start_time = time.time()
-    for i in range(45*500, len(df_all), interval):
-        df_iter = df_all[i:i + interval]
-        df_extra_info = fix_missing_values(get_extra_information(df_iter), 0)
-        if df_extra_info is not None:
-            df_extra_info.drop("picks_bans", inplace=True, axis=1)
-            df_extra_info.to_csv(
-                f"/Users/noyantoksoy/Downloads/intermediate_saves/data_{len(df_iter)}_with_extra_info_{i}.csv")
+    interval = 70
+    for i in range(56 * 500, len(df_all), 8 * interval):
+        start_time = time.time()
+        p = Pool(cpu_count())
+        args = [df_all[i + (x - 1) * interval:i + x * interval] for x in range(1, 9)]
+        collected = p.imap_unordered(get_extra_information, args)
+        file_name_counter = 0
+        args_ = list(map(lambda x: (x, 0), collected))
+        collected_final = p.starmap(fix_missing_values, args_)
+        for res in collected_final:
+            if res is not None:
+                res.drop("picks_bans", inplace=True, axis=1)
+                res.to_csv(
+                    f"/Users/noyantoksoy/Downloads/intermediate_saves/data_{len(res)}_with_extra_info_{i + file_name_counter * interval}.csv")
+                file_name_counter += 1
         end_time = time.time()
         print("Execution time: ", end_time - start_time)
         time.sleep(5)
