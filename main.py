@@ -87,7 +87,7 @@ def fetch_games_api(day_, month_, year_, URL_, all_games_, collection_error_):
 
 def get_pudge_win_rate(account_id, collection_error_extra_info):
     try:
-        time.sleep(0.2)
+        time.sleep(0.1)
         response_API = requests.get(f"https://api.opendota.com/api/players/{account_id}/heroes")
         data = response_API.text
         parse_json = json.loads(data)
@@ -103,7 +103,7 @@ def get_pudge_win_rate(account_id, collection_error_extra_info):
 
 def get_pudge_kda(account_id, collection_error_extra_info):
     try:
-        time.sleep(0.2)
+        time.sleep(0.1)
         response_API = requests.get(f"https://api.opendota.com/api/players/{account_id}/totals?hero_id=14")
         data = response_API.text
         parse_json = json.loads(data)
@@ -119,7 +119,7 @@ def get_pudge_kda(account_id, collection_error_extra_info):
 
 def get_mmr(account_id, collection_error_extra_info):
     try:
-        time.sleep(0.2)
+        time.sleep(0.1)
         response_API = requests.get(f"https://api.opendota.com/api/players/{account_id}")
         data = response_API.text
         parse_json = json.loads(data)
@@ -434,8 +434,8 @@ if __name__ == '__main__':
     df_all = pd.read_csv("/Users/noyantoksoy/Downloads/data_new_captains_mode_1_11_2021.csv")
     df_iter = None
     interval = 500
-    start_time = time.time()
-    for i in range(45*500, len(df_all), interval):
+    for i in range(60*500, len(df_all), interval):
+        start_time = time.time()
         df_iter = df_all[i:i + interval]
         df_extra_info = fix_missing_values(get_extra_information(df_iter), 0)
         if df_extra_info is not None:
@@ -444,7 +444,7 @@ if __name__ == '__main__':
                 f"/Users/noyantoksoy/Downloads/intermediate_saves/data_{len(df_iter)}_with_extra_info_{i}.csv")
         end_time = time.time()
         print("Execution time: ", end_time - start_time)
-        time.sleep(5)
+        time.sleep(2)
 
     # merge_csv()
 
