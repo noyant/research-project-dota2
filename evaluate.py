@@ -6,7 +6,8 @@ import pandas as pd
 import zepid
 import matplotlib.pyplot as plt
 from scipy import stats
-from main import package_dir
+
+package_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def helper_game_outcome(team, radiant_win):

@@ -600,7 +600,7 @@ if __name__ == '__main__':
     # merge_csv()
 
     # This method can be called to retrieve match information from the API, using SQL queries:
-    # collect_games_api()
+    collect_games_api()
 
     # If chromedriver is used:
     # driver.quit()

@@ -5,7 +5,7 @@ import pandas as pd
 import requests
 import json
 
-from main import package_dir
+package_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def fetch_games_api(day_, month_, year_, URL_, all_games_, collection_error_):
