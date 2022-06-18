@@ -556,6 +556,9 @@ def get_additional_info_all_games():
     These information are collected in intervals with intermediary saves because the full collection takes a very
     long time.
     """
+    # This csv file with all games are not included in the repository due to its size.
+    # It can be downloaded through this link:
+    # https://drive.google.com/file/d/1C-dGSLMRMeJqqQFGHYYVDZQXQpvYKGKC/view?usp=sharing
     df_all = pd.read_csv(os.path.join(package_dir, "data/data_new_captains_mode_1_11_2021.csv"))
     interval = 500  # Collect additional information in batches of 500 matches
     left_at = 0  # This variable can be set to the number of intermediary saves collected
