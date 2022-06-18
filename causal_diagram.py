@@ -13,8 +13,8 @@ if __name__ == '__main__':
     g.edge("Counter-pick performance", "Selection of the Pudge hero")
     g.edge("Counter-pick performance", "Game outcome")
 
-    g.edge("Team diversity", "Selection of the Pudge hero")
-    g.edge("Team diversity", "Game outcome")
+    g.edge("Team balance", "Selection of the Pudge hero")
+    g.edge("Team balance", "Game outcome")
 
     g.edge("Knowledge", "Skill level")
     g.edge("Skill level", "MMR")
@@ -22,7 +22,11 @@ if __name__ == '__main__':
     g.edge("MMR", "Selection of the Pudge hero")
     g.edge("MMR", "Game outcome")
 
-    g.edge("Past experience with the hero", "Player's win-rate with the hero")
-    g.edge("Player's win-rate with the hero", "Selection of the Pudge hero")
-    g.edge("Player's win-rate with the hero", "Game outcome")
+    g.edge("Past experience with Pudge", "Player's win-rate with Pudge")
+    g.edge("Past experience with Pudge", "Player's KDA with Pudge")
+    g.edge("Player's win-rate with Pudge", "Selection of the Pudge hero")
+    g.edge("Player's win-rate with Pudge", "Game outcome")
+
+    g.edge("Player's KDA with Pudge", "Selection of the Pudge hero")
+    g.edge("Player's KDA with Pudge", "Game outcome")
     g.view()

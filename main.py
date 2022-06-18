@@ -53,10 +53,10 @@ def setAttribute(element, att_name, att_value):
 
 
 def merge_csv():
-    files = os.path.join("/Users/noyantoksoy/Downloads/gather_data_captains_mode", "data*.csv")
+    files = os.path.join("/Users/noyantoksoy/Downloads/intermediate_saves", "data*.csv")
     files = glob.glob(files)
     df = pd.concat(map(pd.read_csv, files), ignore_index=True)
-    pre_process_csv(df, "/Users/noyantoksoy/Downloads/data_merged_captains_mode.csv")
+    pre_process_csv(df, "/Users/noyantoksoy/Downloads/data_merged_captains_final.csv")
 
 
 def pre_process_csv(df: pandas.DataFrame, file_path):
@@ -123,7 +123,8 @@ def get_mmr(account_id, collection_error_extra_info):
         response_API = requests.get(f"https://api.opendota.com/api/players/{account_id}")
         data = response_API.text
         parse_json = json.loads(data)
-        return parse_json["mmr_estimate"]["estimate"]
+        return parse_json["mmr_estimate"]["estimate"] if len(
+            parse_json["mmr_estimate"]) != 0 else random.randint(0, 153)  # The range of the lowest rank in Dota, Herald 1
     except Exception as e:
         # traceback.print_exc()
         collection_error_extra_info.append(account_id)
@@ -371,7 +372,6 @@ def helper_update_counters(list_counters):
 
 
 def fix_missing_values(df, retries):
-
     missing_win_rate_mask = df.pudge_win_rate.apply(lambda x: -1.0 == x)
     missing_kda_mask = df.pudge_kda.apply(lambda x: -1.0 == x)
     missing_mmr_mask = df.mmr_estimate.apply(lambda x: -1.0 == x)
@@ -387,9 +387,9 @@ def fix_missing_values(df, retries):
         print("Errors in win-rate: ", len(df_missing_win_rate))
         print("Errors in kda: ", len(df_missing_kda))
         print("Errors in mmr: ", len(df_missing_mmr))
-        df.drop("picks_bans", inplace=True, axis=1)
-        df.to_csv(
-            f"/Users/noyantoksoy/Downloads/intermediate_saves/data_error_{len(df)}_with_extra_info_{i}.csv")
+        # df.drop("picks_bans", inplace=True, axis=1)
+        # df.to_csv(
+        #     f"/Users/noyantoksoy/Downloads/intermediate_saves/data_error_{len(df)}_with_extra_info_{i}.csv")
         return None
     else:
         collection_error_win_rate = []
@@ -416,11 +416,27 @@ def fix_missing_values(df, retries):
         return fix_missing_values(df, retries)
 
 
+def fix_files_collection_error():
+    files = os.path.join("/Users/noyantoksoy/Downloads/intermediate_saves", "data_error*.csv")
+    files = glob.glob(files)
+    print(len(files))
+    for file in files:
+        df_with_error = pd.read_csv(file)
+        df_fixed = fix_missing_values(df_with_error, 0)
+        if df_fixed is not None:
+            print("Fixed!")
+            df_fixed.to_csv(file)
+        else:
+            print("Still couldn't collect all data, file name: ", file)
+
+
 if __name__ == '__main__':
     # form_counter_pick_list()
     # form_carry_support_measure()
     # package_dir = os.path.dirname(os.path.abspath(__file__))
     # print(package_dir)
+
+    # fix_files_collection_error()
 
     with open('/Users/noyantoksoy/Documents/research-project-dota2/data/counter_picks_updated.json', 'rb') as fp:
         data_counters: list[dict] = json.load(fp)
@@ -430,23 +446,23 @@ if __name__ == '__main__':
 
     with open('/Users/noyantoksoy/Documents/research-project-dota2/data/carry_support.json', 'rb') as fp:
         carry_support_measures = json.load(fp)
+    #
+    # df_all = pd.read_csv("/Users/noyantoksoy/Downloads/data_new_captains_mode_1_11_2021.csv")
+    # df_iter = None
+    # interval = 500
+    # for i in range(178 * 500, len(df_all), interval):
+    #     start_time = time.time()
+    #     df_iter = df_all[i:i + interval]
+    #     df_extra_info = fix_missing_values(get_extra_information(df_iter), 0)
+    #     if df_extra_info is not None:
+    #         df_extra_info.drop("picks_bans", inplace=True, axis=1)
+    #         df_extra_info.to_csv(
+    #             f"/Users/noyantoksoy/Downloads/intermediate_saves/data_{len(df_iter)}_with_extra_info_{i}.csv")
+    #     end_time = time.time()
+    #     print("Execution time: ", end_time - start_time)
+    #     time.sleep(2)
 
-    df_all = pd.read_csv("/Users/noyantoksoy/Downloads/data_new_captains_mode_1_11_2021.csv")
-    df_iter = None
-    interval = 500
-    for i in range(60*500, len(df_all), interval):
-        start_time = time.time()
-        df_iter = df_all[i:i + interval]
-        df_extra_info = fix_missing_values(get_extra_information(df_iter), 0)
-        if df_extra_info is not None:
-            df_extra_info.drop("picks_bans", inplace=True, axis=1)
-            df_extra_info.to_csv(
-                f"/Users/noyantoksoy/Downloads/intermediate_saves/data_{len(df_iter)}_with_extra_info_{i}.csv")
-        end_time = time.time()
-        print("Execution time: ", end_time - start_time)
-        time.sleep(2)
-
-    # merge_csv()
+    merge_csv()
 
     # games_to_collect = 2 * 8000000
     # games_collected = 0
