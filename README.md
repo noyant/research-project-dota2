@@ -21,6 +21,6 @@ Meaning that, on average, there is a 0.2848% less chance of a team winning the g
 The Research paper in full can be found at: link_to_paper.
 
 The full dataset needed can be downloaded
-through [this link](https://drive.google.com/file/d/1C-dGSLMRMeJqqQFGHYYVDZQXQpvYKGKC/view?usp=sharing)
+through [this link](https://figshare.com/s/d0d019862fbe2bc5fbc6)
 and added to the data folder of this repository.
 
